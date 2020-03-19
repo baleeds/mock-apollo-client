@@ -1,7 +1,13 @@
-import { ApolloLink, DocumentNode, Observable, Operation, FetchResult } from 'apollo-link';
-import { removeClientSetsFromDocument } from 'apollo-utilities';
-import { print } from 'graphql/language/printer';
-import { RequestHandler, RequestHandlerResponse } from './mockClient';
+import {
+  ApolloLink,
+  DocumentNode,
+  Observable,
+  Operation,
+  FetchResult
+} from "apollo-link";
+import { removeClientSetsFromDocument } from "apollo-utilities";
+import { print } from "graphql/language/printer";
+import { RequestHandler, RequestHandlerResponse } from "./mockClient";
 
 export class MockLink extends ApolloLink {
   private requestHandlers: Record<string, RequestHandler> = {};
@@ -10,9 +16,11 @@ export class MockLink extends ApolloLink {
     const key = requestToKey(requestQuery);
 
     if (this.requestHandlers[key]) {
-      throw new Error(`Request handler already defined for query: ${print(requestQuery)}`);
+      throw new Error(
+        `Request handler already defined for query: ${print(requestQuery)}`
+      );
     }
-    
+
     this.requestHandlers[key] = handler;
   }
 
@@ -22,28 +30,36 @@ export class MockLink extends ApolloLink {
     const handler = this.requestHandlers[key];
 
     if (!handler) {
-      throw new Error(`Request handler not defined for query: ${print(operation.query)}`);
+      throw new Error(
+        `Request handler not defined for query: ${print(operation.query)}`
+      );
     }
 
-    let resultPromise: Promise<RequestHandlerResponse<any>> | undefined = undefined;
+    let resultPromise:
+      | Promise<RequestHandlerResponse<any>>
+      | undefined = undefined;
 
     try {
-      resultPromise = handler(operation.variables);
+      resultPromise = Promise.resolve(handler(operation.variables));
     } catch (error) {
-      throw new Error(`Unexpected error whilst calling request handler: ${error.message}`);
+      throw new Error(
+        `Unexpected error whilst calling request handler: ${error.message}`
+      );
     }
 
     if (!isPromise(resultPromise)) {
-      throw new Error(`Request handler must return a promise. Received '${typeof resultPromise}'.`);
+      throw new Error(
+        `Request handler must return a promise. Received '${typeof resultPromise}'.`
+      );
     }
 
     return new Observable<FetchResult>(observer => {
       resultPromise!
-        .then((result) => {
+        .then(result => {
           observer.next(result);
           observer.complete();
         })
-        .catch((error) => {
+        .catch(error => {
           observer.error(error);
         });
       return () => {};
@@ -59,5 +75,5 @@ function requestToKey(requestQuery: DocumentNode): string {
 }
 
 function isPromise(maybePromise: any): maybePromise is Promise<any> {
-  return maybePromise && typeof (maybePromise as any).then === 'function';
+  return maybePromise && typeof (maybePromise as any).then === "function";
 }
